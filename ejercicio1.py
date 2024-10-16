@@ -137,20 +137,19 @@ class MatrixCalculator:
             self.cramer_entries.append(row)
 
     def get_matrix(self, entries):
-        matrix = []
         try:
-            for row in entries:
-                matrix_row = []
-                for entry in row:
-                    value = float(entry.get())
-                    matrix_row.append(value)
-                matrix.append(matrix_row)
-            return np.array(matrix)
+            rows = len(entries)
+            cols = len(entries[0])
+            matrix = np.zeros((rows, cols))
+            for i in range(rows):
+                for j in range(cols):
+                    matrix[i, j] = float(entries[i][j].get())
+            return matrix
         except ValueError:
-            messagebox.showerror("Error", "Por favor, ingrese solo números en las matrices.")
+            messagebox.showerror("Error", "Por favor, asegúrese de que todos los valores son números válidos.")
             return None
 
-    # Método de Gauss-Jordan
+    # Método de Gauss-Jordan con verificación de tipo de solución
     def gauss_jordan(self):
         self.result_text.delete(1.0, tk.END)
         matrix = self.get_matrix(self.matrix_entries)
@@ -158,10 +157,11 @@ class MatrixCalculator:
             return
         try:
             n = matrix.shape[0]
-            augmented = np.hstack((matrix, np.identity(n)))
+            augmented = np.hstack((matrix, np.identity(n)))  # Matriz extendida
             steps = []
 
             for i in range(n):
+                # Intercambio de filas si el pivote actual es cero
                 if augmented[i][i] == 0:
                     for j in range(i + 1, n):
                         if augmented[j][i] != 0:
@@ -169,72 +169,92 @@ class MatrixCalculator:
                             steps.append(f"Intercambio de fila {i + 1} con fila {j + 1}")
                             break
                     else:
-                         raise ValueError("La matriz no es invertible.")
+                        raise ValueError("La matriz no es invertible.")
 
-            # Normalizar la fila pivote
+                # Normalización del pivote
                 pivot = augmented[i][i]
                 augmented[i] = augmented[i] / pivot
                 steps.append(f"Dividir fila {i + 1} por {pivot:.3f} para hacer el pivote igual a 1")
 
-            # Hacer que los demás elementos en la columna sean 0
+                # Eliminación de los elementos por encima y por debajo del pivote
                 for j in range(n):
                     if j != i:
                         factor = augmented[j][i]
                         augmented[j] = augmented[j] - factor * augmented[i]
                         steps.append(f"Restar {factor:.3f} * fila {i + 1} de fila {j + 1}")
 
-            result = augmented[:, :n] 
-            result = np.where(np.isclose(result, 0), 0, result) 
-            self.result_text.insert(tk.END, "Proceso de Gauss-Jordan:\n")
-            for step in steps:
-                self.result_text.insert(tk.END, step + "\n")
-            self.result_text.insert(tk.END, "\nMatriz resultante (Gauss-Jordan):\n")
-            self.result_text.insert(tk.END, np.round(result, 3))
-        except Exception as e:
-             messagebox.showerror("Error", str(e))
+            # Verificar el tipo de solución
+            result = augmented[:, :n]
+            result = np.where(np.isclose(result, 0), 0, result)  # Redondear ceros muy pequeños a cero
 
-    # Método de Cramer
+            # Clasificación de solución
+            if np.any(np.all(np.isclose(result, 0), axis=1)):  # Filas nulas
+                self.result_text.insert(tk.END, "La matriz tiene soluciones infinitas.\n")
+                messagebox.showinfo("Soluciones infinitas", "El sistema tiene soluciones infinitas.")
+            elif np.linalg.matrix_rank(matrix) < n:
+                self.result_text.insert(tk.END, "El sistema no tiene solución.\n")
+                messagebox.showinfo("Sin solución", "El sistema no tiene solución.")
+            else:
+                self.result_text.insert(tk.END, "El sistema tiene solución única.\n")
+                self.result_text.insert(tk.END, "\nMatriz resultante (Gauss-Jordan):\n")
+                self.result_text.insert(tk.END, np.round(result, 3))
+
+                # Imprimir soluciones
+                solutions = augmented[:, -1]
+                for i, sol in enumerate(solutions):
+                    self.result_text.insert(tk.END, f"x{i + 1} = {sol:.3f}\n")
+                    
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+# Método de Cramer con verificación de tipo de solución
     def cramer(self):
         self.result_text.delete(1.0, tk.END)
-        matrix = self.get_matrix(self.cramer_entries)  # Usar la nueva matriz para Cramer
+        matrix = self.get_matrix(self.cramer_entries)
         if matrix is None:
-            return
+           return
         try:
             n = matrix.shape[0]
             m = matrix.shape[1]
 
             if m != n + 1:  # Verifica que la matriz sea (n x (n + 1))
-                raise ValueError("La matriz debe ser de tamaño n x (n + 1).")
+               raise ValueError("La matriz debe ser de tamaño n x (n + 1).")
 
             A = matrix[:, :-1]  # Coeficientes
             b = matrix[:, -1]  # Términos independientes
 
             det_A = np.linalg.det(A)
-            if det_A == 0:
-                raise ValueError("La matriz de coeficientes no es invertible.")
+            if np.isclose(det_A, 0):
+                self.result_text.insert(tk.END, "El sistema no tiene solución o tiene soluciones infinitas.\n")
+                messagebox.showinfo("Sin solución o soluciones infinitas", "El sistema no tiene solución o tiene soluciones infinitas.")
+                return
 
             steps = []
             solutions = []
             for i in range(n):
-                # Crear matriz Ai
-                Ai = np.copy(A)
-                Ai[:, i] = b
-                det_Ai = np.linalg.det(Ai)
-                x_i = det_Ai / det_A
-                solutions.append(x_i)
-                steps.append(f"Det(A{i + 1}) = {det_Ai:.3f}, x{i + 1} = {det_Ai:.3f} / {det_A:.3f} = {x_i:.3f}")
+            # Crear matriz Ai
+               Ai = np.copy(A)
+               Ai[:, i] = b
+               det_Ai = np.linalg.det(Ai)
+               x_i = det_Ai / det_A
+               solutions.append(x_i)
+               steps.append(f"Det(A{i + 1}) = {det_Ai:.3f}, x{i + 1} = {det_Ai:.3f} / {det_A:.3f} = {x_i:.3f}")
 
             self.result_text.insert(tk.END, "Proceso de la Regla de Cramer:\n")
             for step in steps:
                 self.result_text.insert(tk.END, step + "\n")
+
             self.result_text.insert(tk.END, "\nSoluciones:\n")
             for i, sol in enumerate(solutions):
                 self.result_text.insert(tk.END, f"x{i + 1} = {sol:.3f}\n")
+
         except Exception as e:
-            messagebox.showerror("Error", str(e))
-            
-    # Método de multiplicación
+             messagebox.showerror("Error", str(e))
+
+    # Implementación de multiplicación de matrices
     def multiply(self):
+        # Código de multiplicación de matrices aquí
+        pass
         self.result_text.delete(1.0, tk.END)
         matrix_a = self.get_matrix(self.matrix_entries)
         matrix_b = self.get_matrix(self.second_matrix_entries)
@@ -259,9 +279,11 @@ class MatrixCalculator:
             self.result_text.insert(tk.END, np.round(result, 3))
         except ValueError:
             messagebox.showerror("Error", "Las matrices no son compatibles para la multiplicación.")
-
-    # Método de inversa
+            
+    # Implementación de cálculo de inversa de matriz
     def inverse(self):
+        # Código de cálculo de inversa aquí
+        pass
         self.result_text.delete(1.0, tk.END)
         matrix = self.get_matrix(self.matrix_entries)
         if matrix is None:
@@ -289,7 +311,7 @@ class MatrixCalculator:
         except np.linalg.LinAlgError:
             messagebox.showerror("Error", "La matriz no es invertible.")
 
-# Crear la ventana de la calculadora
-root = tk.Tk()
-calculator = MatrixCalculator(root)
-root.mainloop()
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = MatrixCalculator(root)
+    root.mainloop()
