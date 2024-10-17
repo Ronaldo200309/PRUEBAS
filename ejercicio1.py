@@ -149,7 +149,6 @@ class MatrixCalculator:
             messagebox.showerror("Error", "Por favor, asegúrese de que todos los valores son números válidos.")
             return None
 
-    # Método de Gauss-Jordan con verificación de tipo de solución
     def gauss_jordan(self):
         self.result_text.delete(1.0, tk.END)
         matrix = self.get_matrix(self.matrix_entries)
@@ -157,57 +156,47 @@ class MatrixCalculator:
             return
         try:
             n = matrix.shape[0]
-            augmented = np.hstack((matrix, np.identity(n)))  # Matriz extendida
+            augmented = np.hstack((matrix, np.eye(n)))  # Matriz aumentada (A | I)
             steps = []
 
             for i in range(n):
-                # Intercambio de filas si el pivote actual es cero
-                if augmented[i][i] == 0:
+                if np.isclose(augmented[i][i], 0):
+                # Intercambiar con una fila que tenga un valor distinto de cero en la columna i
                     for j in range(i + 1, n):
-                        if augmented[j][i] != 0:
+                        if not np.isclose(augmented[j][i], 0):
                             augmented[[i, j]] = augmented[[j, i]]
                             steps.append(f"Intercambio de fila {i + 1} con fila {j + 1}")
                             break
                     else:
-                        raise ValueError("La matriz no es invertible.")
+                        self.result_text.insert(tk.END, "El sistema no tiene solución única.\n")
+                        return
 
-                # Normalización del pivote
                 pivot = augmented[i][i]
                 augmented[i] = augmented[i] / pivot
                 steps.append(f"Dividir fila {i + 1} por {pivot:.3f} para hacer el pivote igual a 1")
 
-                # Eliminación de los elementos por encima y por debajo del pivote
                 for j in range(n):
                     if j != i:
                         factor = augmented[j][i]
-                        augmented[j] = augmented[j] - factor * augmented[i]
+                        augmented[j] -= factor * augmented[i]
                         steps.append(f"Restar {factor:.3f} * fila {i + 1} de fila {j + 1}")
 
-            # Verificar el tipo de solución
-            result = augmented[:, :n]
-            result = np.where(np.isclose(result, 0), 0, result)  # Redondear ceros muy pequeños a cero
-
-            # Clasificación de solución
-            if np.any(np.all(np.isclose(result, 0), axis=1)):  # Filas nulas
-                self.result_text.insert(tk.END, "La matriz tiene soluciones infinitas.\n")
-                messagebox.showinfo("Soluciones infinitas", "El sistema tiene soluciones infinitas.")
-            elif np.linalg.matrix_rank(matrix) < n:
-                self.result_text.insert(tk.END, "El sistema no tiene solución.\n")
-                messagebox.showinfo("Sin solución", "El sistema no tiene solución.")
-            else:
-                self.result_text.insert(tk.END, "El sistema tiene solución única.\n")
-                self.result_text.insert(tk.END, "\nMatriz resultante (Gauss-Jordan):\n")
-                self.result_text.insert(tk.END, np.round(result, 3))
-
-                # Imprimir soluciones
-                solutions = augmented[:, -1]
+        # Verificar si la matriz tiene una única solución
+            if np.all(np.isclose(augmented[:, :-n], np.eye(n))):  # Si la matriz es la identidad
+                self.result_text.insert(tk.END, "El sistema tiene una solución única:\n")
+                solutions = augmented[:, -n:]
                 for i, sol in enumerate(solutions):
-                    self.result_text.insert(tk.END, f"x{i + 1} = {sol:.3f}\n")
-                    
+                    self.result_text.insert(tk.END, f"x{i + 1} = {sol[0]:.3f}\n")
+            else:
+                 self.result_text.insert(tk.END, "El sistema no tiene solución única o tiene infinitas soluciones.\n")
+
+            self.result_text.insert(tk.END, "\nMatriz final después de Gauss-Jordan:\n")
+            self.result_text.insert(tk.END, np.round(augmented, 3))  # Imprimir la matriz final
+
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
-# Método de Cramer con verificación de tipo de solución
+    # Método de Cramer con verificación de tipo de solución
     def cramer(self):
         self.result_text.delete(1.0, tk.END)
         matrix = self.get_matrix(self.cramer_entries)
