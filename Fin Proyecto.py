@@ -186,7 +186,7 @@ class MatrixCalculator:
                             steps.append(f"Intercambio de fila {i + 1} con fila {j + 1}")
                             break
                     else:
-                        self.result_text.insert(tk.END, "El sistema no tiene solución.\n")
+                        self.result_text.insert(tk.END, "El sistema no tiene solución o tiene infinitas soluciones.\n")
                         return
 
                 pivot = augmented[i][i]
