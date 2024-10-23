@@ -124,9 +124,6 @@ class MatrixCalculator:
             producto = np.dot(matrix_a, matrix_b)
             messagebox.showinfo("Producto", f"El producto es:\n{producto}")
 
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
-
     def calcular_inversa(self):
         try:
             dim = self.dimension_var.get()
