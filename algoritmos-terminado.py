@@ -307,6 +307,7 @@ class MatrixCalculator:
             self.result_text.insert(tk.END, "".join(steps))
         except np.linalg.LinAlgError:
             messagebox.showerror("Error", "La matriz no es invertible.")
+            #HKSNDKLDSJLSLMSLDFSKLKLMKLMLFKLMDSMCNDSMSLDLKM,MSKLDSLMSSSMDDSM
 
 # Crear la ventana de la calculadora
 root = tk.Tk()
