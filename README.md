@@ -24,3 +24,4 @@ Interacción con la interfaz:
 Al abrir el programa, selecciona una calculadora en el menú principal (Álgebra Lineal, Matemática Discreta o Algoritmos).
 En la ventana seleccionada, ingresa los valores y elige la operación deseada, ya sea por método de Gauss Jordan, Cramer o si quieres realizar multiplicación o inversa de las matrices. 
 Capturas de pantalla que muestran la interfaz gráfica y ejemplos de uso con los métodos solicitados.
+![interfaz grafica]()
